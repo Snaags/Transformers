@@ -57,6 +57,17 @@ def binary_to_hex_string(binary_data):
         return binascii.hexlify(binary_data).decode('utf-8')
 
 
+def write_large_string_to_file(file_path, large_string, chunk_size=1024 * 1024):
+    with open(file_path, 'w', encoding='utf-8') as file:
+        start_index = 0
+        end_index = chunk_size
+        
+        while start_index < len(large_string):
+            file.write(large_string[start_index:end_index])
+            start_index += chunk_size
+            end_index += chunk_size
+
+
 #function to save hex string as .txt file 
 def save_hex_strings_to_file(hex_string, file_path, compressed = True):
     
@@ -67,9 +78,12 @@ def save_hex_strings_to_file(hex_string, file_path, compressed = True):
     
     #save as raw txt file
     else:
+        write_large_string_to_file(file_path, hex_string)
+        
+        '''
         with open(file_path, "w") as file:
             file.write(hex_string)
-
+        '''
 
 #function to downlaod and return hex string from sha256 hash                
 def download_hex(apk_hash: str, api_key: str, temp_path = os.path.expanduser('~/temp/temp_apk.apk')):
@@ -110,12 +124,17 @@ def download_worker(args):
         file_save_dir = f'{save_dir}/{family}/{malware_type}'
 
         if not os.path.exists(file_save_dir): os.makedirs(file_save_dir)
-        if os.path.exists(f'{file_save_dir}/{apk_hash}.txt') and not args['overwrite']: return 
-
+        if os.path.exists(f'{file_save_dir}/{apk_hash}.txt'): 
+            if not args['overwrite']: 
+                return 
+            else:
+                os.remove(f'{file_save_dir}/{apk_hash}.txt')
+        
         #download apk and extract hex string
         hex_string = download_hex(apk_hash, api_key, temp_path =
                                   os.path.expanduser(f'~/temp/temp_{ids}.apk'))
                                                         
+        print(len(hex_string))
         save_hex_strings_to_file(hex_string, f'{file_save_dir}/{apk_hash}.txt', compressed = args['compressed'])
         
         del hex_string
@@ -208,7 +227,7 @@ def main():
                            overwrite = overwrite)
     
         print('--- Finished Train Set ---')
-
+    
     #download val data
     if script_config['val']['download']:
         create_data_folder(os.path.expanduser(f'{download_path}/val'),
@@ -219,7 +238,7 @@ def main():
                            overwrite = overwrite)
 
         print('--- Finished Val Set ---')
-
+   
     #download test data
     if script_config['test']['download']:
         create_data_folder(os.path.expanduser(f'{download_path}/test'),
