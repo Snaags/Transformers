@@ -117,7 +117,9 @@ def download_worker(args):
                                   os.path.expanduser(f'~/temp/temp_{ids}.apk'))
                                                         
         save_hex_strings_to_file(hex_string, f'{file_save_dir}/{apk_hash}.txt', compressed = args['compressed'])
-    
+        
+        del hex_string
+
     except Exception as e:
         print( "exception occurred:")
         print(type(e))
