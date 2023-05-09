@@ -29,3 +29,31 @@ class ByteLevelAutoencoder(T.nn.Module):
         self.decoder = recurrent_block(2 * hidden_dim, input_dim, num_layers = decoder_layers, batch_first = True, bidirectional = decoder_bidirectional)
 
 
+    #function to encode data
+    def encode(self, x):
+        pass
+    
+
+    #function to decode encoded data 
+    def decode(self, x):
+        pass
+
+
+    #implement autoencode forward pass
+    def forward(self, x):
+        
+        #pass data throu
+        _, (hidden, _) = self.encode(x)
+
+        hidden = hidden.view(1, x.size(0), -1)
+
+        output, _ = self.decoder(hidden.repeat(x.size(1), 1, 1)).transpose(0,1)
+        return output
+
+def lstm 
+
+def Custom_GRU(T.nn.Module);
+
+    def __init__
+
+
