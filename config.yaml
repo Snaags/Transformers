@@ -28,18 +28,18 @@ scripts:
       name: parse_androzoo.py 
       parameters:
         split_path: '~/data/malnet/split_info/family/0.01' 
-        download_path: '/media/jack/hd/malnet_txt/family/0.01'
+        download_path: '/media/jack/hd/malnet_bins/family/0.01'
         api_key: '9b10aecb742d722bb47660cdc1a2d562e29a5065683c38b69fa90134c9d90db1'  
         overwrite: False
         train:
           download: True
-          compress: False
+          save_format: 'byte_string'
         test:
           download: True
-          compress: False
+          save_format: 'byte_string'
         val:
           download: True
-          compress: False
+          save_format: 'byte_string'
 
 # details of the scripts to be run by main.py
 current_script:

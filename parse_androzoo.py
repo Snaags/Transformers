@@ -53,9 +53,15 @@ def extract_bytecode(apk_path: str):
                      
 
 #function to convert binary formatted data to string of hexadecimal representation
-def binary_to_hex_string(binary_data):
-        return binascii.hexlify(binary_data).decode('utf-8')
-
+def binary_to_hex(binary_data, use_format = 'byte_string'):
+        hex_bytes = binascii.hexlify(binary_data)
+        
+        if use_format == 'text': 
+            return hex_bytes.decode('utf-8')
+        elif use_format == 'byte_string':
+            return hex_bytes
+        else:
+            raise ValueError('ERROR::: Invalid Format For Parsing Binary')
 
 def write_large_string_to_file(file_path, large_string, chunk_size=1024 * 1024):
     with open(file_path, 'w', encoding='utf-8') as file:
@@ -69,34 +75,44 @@ def write_large_string_to_file(file_path, large_string, chunk_size=1024 * 1024):
 
 
 #function to save hex string as .txt file 
-def save_hex_strings_to_file(hex_string, file_path, compressed = True):
-    
+def save_hex_strings_to_file(hex_string, file_path, save_format = 'byte_string'):
+     
+    #save as byte string
+    if save_format == 'byte_string':
+        with open(f'{file_path}.bin', 'wb') as file:
+            file.write(hex_string)
+
     #compress using gzip
-    if compressed:
-        with gzip.open(file_path, "wt") as file:
+    elif save_format == 'compressed':
+        with gzip.open(f'{file_path}.txt', "wt") as file:
             file.write(hex_string)
     
     #save as raw txt file
-    else:
-        write_large_string_to_file(file_path, hex_string)
+    elif save_format == 'text':
+        write_large_string_to_file(f'{file_path}.txt', hex_string)
         
         '''
         with open(file_path, "w") as file:
             file.write(hex_string)
         '''
+    else:
+        raise ValueError('ERROR::: Invalid hex save format specified')
 
 #function to downlaod and return hex string from sha256 hash                
-def download_hex(apk_hash: str, api_key: str, temp_path = os.path.expanduser('~/temp/temp_apk.apk')):
+def download_hex(apk_hash: str, api_key: str, use_format = 'byte_string', temp_path = os.path.expanduser('~/temp/temp_apk.apk')):
     
     #download android apk from androzoo using previously defined function
     download_apk(apk_hash, temp_path, api_key)
     dex_files = extract_bytecode(temp_path)  #find dex files in apk
-    
+
     #convert dex files to hex dumps
-    hex_files = [binary_to_hex_string(x) for x in dex_files]
+    hex_files = [binary_to_hex(x, use_format = use_format) for x in dex_files]
     
     #combine in case of multiple dex files
-    hex_string = ''.join(hex_files)
+    if use_format == 'byte_string':
+        hex_string = b''.join(hex_files)
+    else:
+        hex_string = ''.join(hex_files)
     os.remove(temp_path)
                                                                 
     return hex_string
@@ -122,20 +138,28 @@ def download_worker(args):
 
         #save hex string as txt file
         file_save_dir = f'{save_dir}/{family}/{malware_type}'
-
-        if not os.path.exists(file_save_dir): os.makedirs(file_save_dir)
-        if os.path.exists(f'{file_save_dir}/{apk_hash}.txt'): 
-            if not args['overwrite']: 
-                return 
-            else:
-                os.remove(f'{file_save_dir}/{apk_hash}.txt')
         
+        if not os.path.exists(file_save_dir): os.makedirs(file_save_dir)
+        
+        file_save_path = f'{file_save_dir}/{apk_hash}'
+        
+        if os.path.exists(f'{file_save_dir}/{apk_hash}.txt') and args['overwrite']:
+            os.remove(f'{file_save_dir}.txt')
+        
+        elif os.path.exists(f'{file_save_path}.bin') and args['overwrite']: 
+            os.remove(f'{file_save_path}.bin')
+        
+        elif (os.path.exists(f'{file_save_path}.bin') or os.path.exists(f'{file_save_path}.txt')) and (not args['overwrite']):
+            return
+        
+
         #download apk and extract hex string
-        hex_string = download_hex(apk_hash, api_key, temp_path =
-                                  os.path.expanduser(f'~/temp/temp_{ids}.apk'))
-                                                        
-        print(len(hex_string))
-        save_hex_strings_to_file(hex_string, f'{file_save_dir}/{apk_hash}.txt', compressed = args['compressed'])
+        hex_string = download_hex(apk_hash, api_key, 
+                                  use_format = args['save_format'], 
+                                  temp_path = os.path.expanduser(f'~/temp/temp_{ids}.apk'))
+
+        save_hex_strings_to_file(hex_string, f'{file_save_dir}/{apk_hash}',
+                                 save_format = args['save_format'])
         
         del hex_string
 
@@ -144,21 +168,22 @@ def download_worker(args):
         print(type(e))
         print(e.args)
         print(e)
-                                
+        
         exc_type, exc_value, exc_traceback = sys.exc_info()
         filename, line_number, function_name, _ = traceback.extract_tb(exc_traceback)[-1]      
-        
+
         print("An exception occurred:")
         print(f"File: {filename}")
         print(f"Line: {line_number}")
         print(f"Type: {type(e)}")
         print(f"Message:{e}")
         sys.stdout.flush()
-        return
+
 
 
 #functino to read malnet splits and create corresponding folders of text files
-def create_data_folder(save_dir, hashes = None, load_path = None, overwrite = False, api_key = None, compressed = False, processes = 10):
+def create_data_folder(save_dir, hashes = None, load_path = None, overwrite =
+                       False, api_key = None, save_format = 'save_format', processes = 10):
                                       
     if hashes is None and load_path is None: 
         raise ValueError('No data provided')
@@ -181,10 +206,10 @@ def create_data_folder(save_dir, hashes = None, load_path = None, overwrite = Fa
                 args['apk_hash'] = fields[2]
                 args['ids'] = i
                 args['save_dir'] = save_dir
-                args['compressed'] = compressed 
+                args['compressed'] = save_format
                 args['api_key'] = api_key
                 args['overwrite'] = overwrite
-
+                args['save_format'] = save_format
                 samples.append(args)
                                                   
     #print(f'family: {fields[0]} |   type: {fields[1]}   |   id: {fields[2]}')
@@ -222,7 +247,7 @@ def main():
         create_data_folder(os.path.expanduser(f'{download_path}/train'),
                            load_path = os.path.expanduser(f'{split_path}/train.txt'),
                            processes = num_processes, 
-                           compressed = script_config['train']['compress'],
+                           save_format = script_config['train']['save_format'],
                            api_key = api_key,
                            overwrite = overwrite)
     
@@ -233,7 +258,7 @@ def main():
         create_data_folder(os.path.expanduser(f'{download_path}/val'),
                            load_path = os.path.expanduser(f'{split_path}/val.txt'),
                            processes = num_processes, 
-                           compressed = script_config['val']['compress'],
+                           save_format = script_config['val']['save_format'],
                            api_key = api_key,
                            overwrite = overwrite)
 
@@ -244,7 +269,7 @@ def main():
         create_data_folder(os.path.expanduser(f'{download_path}/test'),
                            load_path = os.path.expanduser(f'{split_path}/test.txt'),
                            processes = num_processes, 
-                           compressed = script_config['test']['compress'],
+                           save_format = script_config['test']['save_format'],
                            api_key = api_key,
                            overwrite = overwrite)
     
