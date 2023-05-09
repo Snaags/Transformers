@@ -54,10 +54,11 @@ def extract_bytecode(apk_path: str):
 
 #function to convert binary formatted data to string of hexadecimal representation
 def binary_to_hex(binary_data, use_format = 'byte_string'):
-        hex_bytes = binascii.hexlify(binary_data)
-        
+        #hex_bytes = binascii.hexlify(binary_data)
+        hex_bytes = binary_data
+
         if use_format == 'text': 
-            return hex_bytes.decode('utf-8')
+            return binascii.hexlify(hex_bytes).decode('utf-8')
         elif use_format == 'byte_string':
             return hex_bytes
         else:
