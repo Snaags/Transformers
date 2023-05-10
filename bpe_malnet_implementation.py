@@ -18,7 +18,7 @@ import binascii
 class malnet_dataloader():
 
     def __init__(self, 
-                 dataset_path = '/media/jack/hd/malnet_raw_bins/family/0.01/train',
+                 dataset_path = os.path.expanduser('~/sample_data/family/0.01/train'),
                 seed = time.time()):
         
         #store dataset path
@@ -76,7 +76,10 @@ class malnet_dataloader():
     #iterate over entire dataest one file at a time
     def iterate_dataset(self):
         for i in range(100): 
-            yield binascii.hexlify(self.load_byte_file(self.random_sample(self.dataset_path))).decode('utf-8')
+            raw_bytes = self.load_byte_file(self.random_sample(self.dataset_path))
+            
+            #yield raw_bytes
+            yield binascii.hexlify(raw_bytes).decode('utf-8')
 
 from tokenizers import Tokenizer, pre_tokenizers, decoders, processors
 from tokenizers.models import BPE
@@ -88,15 +91,17 @@ loader = malnet_dataloader()
 #initalise BPE tokenizer
 malnet_tokeniser = Tokenizer(BPE())
 
-malnet_tokeniser.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space = False, use_regex = False)
-malnet_tokeniser.decoder = decoders.ByteLevel()
-malnet_tokeniser.post_processor = processors.ByteLevel(trim_offsets = True)
+#malnet_tokeniser.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space = False, use_regex = False)
+malnet_tokeniser.decoder = decoders.BPEDecoder()
+#malnet_tokeniser.post_processor = processors.ByteLevel(trim_offsets = True)
+
+hex_digits = '0123456789abcdef'
 
 trainer = BpeTrainer(
     vocab_size = 512,  # Set the desired vocabulary size
     min_frequency = 2,
     show_progress= True,
-    initial_alphabet = pre_tokenizers.ByteLevel.alphabet(),
+    initial_alphabet = [a + b for a in hex_digits for b in hex_digits],
     special_tokens = ["<s>", "<pad>", "</s>", "<unk>", "<mask>"],
 )
 
