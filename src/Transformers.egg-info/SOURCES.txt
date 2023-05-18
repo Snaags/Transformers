@@ -1,0 +1,16 @@
+README.md
+setup.cfg
+setup.py
+src/Transformers/bpe_malnet_implementation.py
+src/Transformers/gru_tokeniser.py
+src/Transformers/lstm_tokeniser.py
+src/Transformers/main.py
+src/Transformers/parse_androzoo.py
+src/Transformers/pytorch_transformer.py
+src/Transformers/vision_transformers.py
+src/Transformers.egg-info/PKG-INFO
+src/Transformers.egg-info/SOURCES.txt
+src/Transformers.egg-info/dependency_links.txt
+src/Transformers.egg-info/not-zip-safe
+src/Transformers.egg-info/requires.txt
+src/Transformers.egg-info/top_level.txt

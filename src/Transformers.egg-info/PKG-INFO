@@ -1,0 +1,20 @@
+Metadata-Version: 2.1
+Name: Transformers
+Version: 0.0.0
+Summary: Malware package
+Home-page: UNKNOWN
+Author: JackW
+License: GPL3
+Platform: linux
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Requires-Python: >=3.6
+Provides-Extra: testing
+
+UNKNOWN
+
