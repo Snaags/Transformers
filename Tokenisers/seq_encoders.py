@@ -353,6 +353,7 @@ class GRUAutoencoder(T.nn.Module):
         
         hyperparams = { 'learning_rate' : 0.001,
                        'weight_decay' : 0.0001,
+                       'batch_size' : 32,
                        'dropout' : 0.1,
                        'epochs' : 100,
                        'teacher_forcing_ratio' : 0.9}
@@ -379,7 +380,7 @@ class GRUAutoencoder(T.nn.Module):
             
             val_loss = 0
             val_bytes_correct = 0
-            
+     
             for batch_num, batch in enumerate(train_dl):
                 
                 # get batch of sequences
@@ -415,18 +416,18 @@ class GRUAutoencoder(T.nn.Module):
                     
                     hidden, pred_state = self.decoder(next_input, hidden)
                     
-                    normalised_prediction = F.softmax(self.decoder.fc(pred_state), dim = -1)
+                    unnormalised_prediction = self.decoder.fc(pred_state)
                     
                     if loss is None:
-                        loss = loss_fn(normalised_prediction, x[:,i + 1])
+                        loss = loss_fn(unnormalised_prediction, x[:,i + 1])
                     else:
-                        loss += loss_fn(normalised_prediction, x[:,i + 1])
+                        loss += loss_fn(unnormalised_prediction, x[:,i + 1])
                     
-                    batch_loss += loss 
+                    batch_loss += loss.item()
      
-                    pred_token = T.argmax(normalised_prediction, dim = -1)  #convert decoder hidden state to 
+                    pred_token = T.argmax(unnormalised_prediction, dim = -1)  #convert decoder hidden state to 
                     
-                    batch_bytes_correct = T.sum(T.eq(pred_token, x[:,i + 1])).item()
+                    batch_bytes_correct += T.sum(T.eq(pred_token, x[:,i + 1])).item()
                     
                     if teacher_forcing: pred_token = x[:,i]
                     
@@ -434,11 +435,11 @@ class GRUAutoencoder(T.nn.Module):
                     
                    
                 #calculate loss for batch as mean loss over sequence
-                loss = loss/self.byte_seq_len  #mean loss over sequence to make invariant to length
-                batch_loss = batch_loss/self.byte_seq_len
+                loss = loss/(self.byte_seq_len+1)  #mean loss over sequence to make invariant to length
+                batch_loss = batch_loss/(self.byte_seq_len+1) 
                 batch_bytes_correct = batch_bytes_correct/ (self.byte_seq_len * hyperparams['batch_size'])
                 
-                print(f'Train Loss: {batch_loss}   |   Train Correct: {batch_bytes_correct}')
+                print(f'Train Loss: {batch_loss}   |   Train Correct: {batch_bytes_correct}', end = '\r')
                 
                 train_loss += batch_loss
                 train_bytes_correct += batch_bytes_correct
@@ -448,7 +449,7 @@ class GRUAutoencoder(T.nn.Module):
                 T.nn.utils.clip_grad_norm_(self.parameters(), max_norm=1.0)  #apply gradient clipping
                 optimiser.step()
                 
-                
+
             if val_dl is not None:
                 
                 for batch_num, batch in val_dl:
@@ -476,33 +477,36 @@ class GRUAutoencoder(T.nn.Module):
 
                         hidden, pred_state = self.decoder(next_input, hidden)  # pass token through decoder
 
-                        normalised_prediction = F.softmax(self.decoder.fc(pred_state), dim = -1)  #predict probabilities for next token
+                        unnormalised_prediction = self.decoder.fc(pred_state) #predict probabilities for next token
                         
-                        batch_loss += loss_fn(normalised_prediction, x[:,i + 1]).item() # calculate validation loss
+                        batch_loss += loss_fn(unnormalised_prediction, x[:,i + 1]).item() # calculate validation loss
                         
-                        pred_token = T.argmax(normalised_prediction, dim = -1)  #convert decoder hidden state to 
+                        pred_token = T.argmax(unnormalised_prediction, dim = -1)  #convert decoder hidden state to 
                         
-                        batch_bytes_correct = T.sum(T.eq(pred_token, x[:,i + 1])).item()
+                        batch_bytes_correct += T.sum(T.eq(pred_token, x[:,i + 1])).item()
                         
                         next_input = self.embedding_layer(pred_token).unsqueeze(1)
                         
                     batch_loss = batch_loss / self.byte_seq_len
                     batch_bytes_correct = batch_bytes_correct/ (self.byte_seq_len * hyperparams['batch_size'])  #normalise bytes correct
                     
-                    print(f'Val Loss: {batch_loss}   |   Val Correct: {batch_bytes_correct}')
+                    print(f'Val Loss: {batch_loss}   |   Val Correct: {batch_bytes_correct}', end = '\r')
                     
                     val_loss += batch_loss
                     val_bytes_correct += batch_bytes_correct
+            
                     
+                history['val_loss'].append(val_loss/len(val_dl.dataset))
+                history['val_correct'].append(val_bytes_correct/len(val_dl.dataset))
+            
             history['train_loss'].append(train_loss/len(train_dl.dataset))
             history['train_correct'].append(train_bytes_correct/len(train_dl.dataset))
             
-            history['val_loss'].append(val_loss/len(val_dl.dataset))
-            history['val_correct'].append(val_bytes_correct/len(val_dl.dataset))
+            
             
             if scheduler is not None:  # step learning rate if schedular provided
                 scheduler.step()
-                
+             
                 
         return history
                 

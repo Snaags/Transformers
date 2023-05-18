@@ -17,6 +17,7 @@ import numpy as np
 import random
 import time
 import binascii
+import torch.multiprocessing as mp
 
 # ------------------------ Dataset Class for Androzoo -------------------------
 
@@ -208,7 +209,7 @@ class HexDumpDataset(T.utils.data.Dataset):
     
 # --------------------- Function to Construct Dataloader ----------------------
 
-def get_hex_dataloader(path, batch_size, byte_seq_len = 512, seq_level = True, supervised = False, device = 'cuda'):
+def get_hex_dataloader(path, batch_size, byte_seq_len = 512, num_workers = 1, seq_level = True, supervised = False, device = 'cuda'):
     '''
     Function to Construct Dataloader for binary dataset, assumes split is
     contained in its own folder with its sub directories structured as:
@@ -257,7 +258,9 @@ def get_hex_dataloader(path, batch_size, byte_seq_len = 512, seq_level = True, s
     sample_weights = T.from_numpy(sample_weights)  # convert to tensor
 
     sampler = T.utils.data.WeightedRandomSampler(sample_weights.type('torch.DoubleTensor'), len(sample_weights))  #instantiate sampler
-
+    
+    mp.set_start_method('spawn', force = True)
+    
     # instantiate and return dataloader
-    dataloader = T.utils.data.DataLoader(dataset, batch_size = batch_size,sampler = sampler)
+    dataloader = T.utils.data.DataLoader(dataset, batch_size = batch_size,sampler = sampler, num_workers = num_workers)
     return dataloader

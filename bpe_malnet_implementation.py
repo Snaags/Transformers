@@ -75,7 +75,7 @@ class malnet_dataloader():
 
     #iterate over entire dataest one file at a time
     def iterate_dataset(self):
-        for i in range(100): 
+        for i in range(10): 
             raw_bytes = self.load_byte_file(self.random_sample(self.dataset_path))
             
             #yield raw_bytes
@@ -98,7 +98,7 @@ malnet_tokeniser.decoder = decoders.BPEDecoder()
 hex_digits = '0123456789abcdef'
 
 trainer = BpeTrainer(
-    vocab_size = 512,  # Set the desired vocabulary size
+    vocab_size = 1024,  # Set the desired vocabulary size
     min_frequency = 2,
     show_progress= True,
     initial_alphabet = [a + b for a in hex_digits for b in hex_digits],
@@ -107,7 +107,7 @@ trainer = BpeTrainer(
 
 malnet_tokeniser.train_from_iterator(loader.iterate_dataset(), trainer)
 
-malnet_tokeniser.save(os.path.expanduser('~/malnet_tokeniser.json'))
+malnet_tokeniser.save(os.path.expanduser('~/malnet_tokeniser_10_samples.json'))
 
 
 
